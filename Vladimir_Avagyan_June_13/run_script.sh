@@ -8,14 +8,14 @@ source ./aws_functions.sh
 
 s_tag=$(awc_GenerateResourceTags "vpc" "$def_projecttag" "$def_expireinseconds")
 
-declare s_vpcid
-awc_CreateVPC $def_awspn $def_vpccidr $s_tag "s_vpcid"
+declare var_vpcid
+awc_CreateVPC $def_awspn $def_vpccidr $s_tag "var_vpcid"
 
 errcode=$?
 if [[ ! $errcode == 0 ]]
 then
-    echo "cleanup on vpc error" #TODO
-    awc_CleanupResources
+    echo "cleanup on vpc error"
+    awc_CleanupResources $def_awspn
     exit $errcode
 fi
 
@@ -24,13 +24,14 @@ fi
 
 s_tag=$(awc_GenerateResourceTags "subnet" "$def_projecttag" "$def_expireinseconds")
 
-s_subnetid=$(awc_CreateSubnet $def_awspn $def_subnetcidr $s_vpcid $s_tag)
+declare var_subnetid
+awc_CreateSubnet $def_awspn $def_subnetcidr $var_vpcid $s_tag "var_subnetid"
 
 errcode=$?
 if [[ ! $errcode == 0 ]]
 then
-    echo "cleanup on subnet error" #TODO
-    awc_CleanupResources
+    echo "cleanup on subnet error"
+    awc_CleanupResources $def_awspn
     exit $errcode
 fi
 

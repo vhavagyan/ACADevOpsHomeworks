@@ -120,11 +120,38 @@ function awc_StoreResToArray {
 
 #function to remove created resources
 function awc_CleanupResources {
-	for i in ${!awc_CreatedResourcesIDsArray[@]}
+	declare p_awsprofilename=$1
+
+	declare errcode
+	declare s_output
+	declare v_resId
+	declare v_resType
+
+	#looping array in backward order
+	indices=( ${!awc_CreatedResourcesIDsArray[@]} )
+	
+	for ((i=${#indices[@]} - 1; i >= 0; i--))
 	do
+    	v_resId=${awc_CreatedResourcesIDsArray[indices[i]]}
+        v_resType=${awc_CreatedResourcesTypesArray[indices[i]]}
+
 		#TODO: analyze resource type and delete resource
-    	echo ${awc_CreatedResourcesIDsArray[$i]}
-        echo ${awc_CreatedResourcesTypesArray[$i]}
+		if [ $v_resType = "vpc" ]
+		then
+			aws --profile $p_awsprofilename \
+				ec2 delete-vpc \
+					--vpc-id $v_resId
+			
+			errcode=$?
+		else
+			echo "Unknown resource type to delete"
+			return 1
+		fi
+
+		if [[ ! $errcode == 0 ]]
+		then
+			return $errcode
+		fi
 	done
 }
 
