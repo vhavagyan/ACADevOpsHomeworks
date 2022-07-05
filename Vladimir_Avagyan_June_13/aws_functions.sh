@@ -81,6 +81,8 @@ function awc_CreateSubnet {
 	declare p_subnetcidr=$2
 	declare p_vpcid=$3
 	declare p_resourcetags=$4
+	#return params
+	declare -n ret_subnetid=$5
 
 	declare errcode
 	declare s_output
@@ -100,7 +102,7 @@ function awc_CreateSubnet {
 	else
 		s_subnetid=$s_output
 		awc_StoreResToArray $s_subnetid "subnet"
-		echo $s_subnetid
+		ret_subnetid=$s_subnetid
 	fi
 }
 
