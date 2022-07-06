@@ -17,6 +17,6 @@ declare -r def_expireinseconds=3600
 declare -r def_vpccidr="10.10.0.0/16"
 
 #CIDR of new subnet for new VPC
-declare -r def_subnetcidr="1000.10.10.0/24"
+declare -r def_subnetcidr="10.10.10.0/24"
 
 #====

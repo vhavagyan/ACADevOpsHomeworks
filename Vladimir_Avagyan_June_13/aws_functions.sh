@@ -107,6 +107,112 @@ function awc_CreateSubnet {
 }
 
 
+#function to create internet gateway and attach it to a VPC
+function awc_CreateAttachInternetGateway {
+	#params
+	declare p_awsprofilename=$1
+	declare p_vpcid=$2
+	declare p_resourcetags=$3
+	#return params
+	declare -n ret_igwid=$4
+
+	declare errcode
+	declare s_output
+	declare s_igwid
+
+	s_output=$(aws --profile $p_awsprofilename \
+				ec2 create-internet-gateway \
+   					--tag-specification $p_resourcetags \
+					--query InternetGateway.InternetGatewayId --output text)
+
+	errcode=$?
+	if [[ ! $errcode == 0 ]]
+	then
+		return $errcode
+	else
+		s_igwid=$s_output
+		awc_StoreResToArray $s_igwid "internetgateway"
+		ret_igwid=$s_igwid
+	fi
+	
+	
+	aws --profile $p_awsprofilename \
+		ec2 attach-internet-gateway \
+   			--internet-gateway-id $s_igwid \
+			--vpc-id $p_vpcid
+	
+	errcode=$?
+	if [[ ! $errcode == 0 ]]
+	then
+		return $errcode
+	fi
+}
+
+
+#function to create route table and associate it to a VPC subnet
+function awc_CreateAssociateRouteTable {
+	#params
+	declare p_awsprofilename=$1
+	declare p_vpcid=$2
+	declare p_subnetid=$3
+	declare p_igwid=$4
+	declare p_resourcetags=$5
+	#return params
+	declare -n ret_rtbid=$6
+
+	declare errcode
+	declare s_output
+	declare s_rtbid
+
+	s_output=$(aws --profile $p_awsprofilename \
+				ec2 create-route-table \
+					--vpc-id $p_vpcid \
+					--tag-specification $p_resourcetags \
+					--query RouteTable.RouteTableId --output text)
+
+	errcode=$?
+	if [[ ! $errcode == 0 ]]
+	then
+		return $errcode
+	else
+		s_rtbid=$s_output
+		awc_StoreResToArray $s_rtbid "routetable"
+		ret_rtbid=$s_rtbid
+	fi
+	
+
+	s_output=$(aws --profile $p_awsprofilename \
+				ec2 associate-route-table \
+					--route-table-id $s_rtbid \
+					--subnet-id $p_subnetid )
+	
+	errcode=$?
+	if [[ ! $errcode == 0 ]]
+	then
+		return $errcode
+	fi
+
+
+	s_output=$(aws --profile $p_awsprofilename \
+				ec2 create-route \
+					--route-table-id $s_rtbid \
+					--gateway-id $p_igwid \
+					--destination-cidr-block 0.0.0.0/0 \
+					--query Return --output text)
+	
+	errcode=$?
+	if [[ ! $errcode == 0 ]]
+	then
+		return $errcode
+	elif [ ${s_output,,} != "true" ]
+	then
+		echo "error on create-route"
+		return 1
+	fi
+
+}
+
+
 #==============================================================
 #===resources cleanup functions
 
@@ -126,14 +232,15 @@ function awc_CleanupResources {
 	declare s_output
 	declare v_resId
 	declare v_resType
+	declare s_vpcId
 
 	#looping array in backward order
-	indices=( ${!awc_CreatedResourcesIDsArray[@]} )
+	indexes=( ${!awc_CreatedResourcesIDsArray[@]} )
 	
-	for ((i=${#indices[@]} - 1; i >= 0; i--))
+	for ((i=${#indexes[@]} - 1; i >= 0; i--))
 	do
-    	v_resId=${awc_CreatedResourcesIDsArray[indices[i]]}
-        v_resType=${awc_CreatedResourcesTypesArray[indices[i]]}
+    	v_resId=${awc_CreatedResourcesIDsArray[indexes[i]]}
+        v_resType=${awc_CreatedResourcesTypesArray[indexes[i]]}
 
 		#TODO: analyze resource type and delete resource
 		if [ $v_resType = "vpc" ]
@@ -143,8 +250,40 @@ function awc_CleanupResources {
 					--vpc-id $v_resId
 			
 			errcode=$?
+		elif [ $v_resType = "subnet" ]
+		then
+			aws --profile $p_awsprofilename \
+				ec2 delete-subnet \
+					--subnet-id $v_resId
+			
+			errcode=$?
+		elif [ $v_resType = "internetgateway" ]
+		then
+			s_vpcId=$(aws --profile $p_awsprofilename \
+						ec2 describe-internet-gateways \
+							--internet-gateway-ids $v_resId \
+							--query InternetGateways[0].Attachments[0].VpcId --output text)
+			
+			aws --profile $p_awsprofilename \
+				ec2 detach-internet-gateway \
+					--internet-gateway-id $v_resId \
+					--vpc-id $s_vpcId
+
+			aws --profile $p_awsprofilename \
+				ec2 delete-internet-gateway \
+					--internet-gateway-id $v_resId
+			
+			errcode=$?
+		elif [ $v_resType = "routetable" ]
+		then
+			#TODO: disassociate route table
+			aws --profile $p_awsprofilename \
+				ec2 delete-route-table \
+					--route-table-id $v_resId
+			
+			errcode=$?
 		else
-			echo "Unknown resource type to delete"
+			echo "Unknown resource type to delete: $v_resType"
 			return 1
 		fi
 
