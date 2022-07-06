@@ -88,6 +88,8 @@ function awc_CreateSubnet {
 	declare s_output
 	declare s_subnetid
 
+	ret_subnetid=""
+
 	s_output=$(aws --profile $p_awsprofilename \
 				ec2 create-subnet \
    					--cidr-block $p_subnetcidr \
@@ -119,6 +121,8 @@ function awc_CreateAttachInternetGateway {
 	declare errcode
 	declare s_output
 	declare s_igwid
+
+	ret_igwid=""
 
 	s_output=$(aws --profile $p_awsprofilename \
 				ec2 create-internet-gateway \
@@ -163,6 +167,8 @@ function awc_CreateAssociateRouteTable {
 	declare errcode
 	declare s_output
 	declare s_rtbid
+
+	ret_rtbid=""
 
 	s_output=$(aws --profile $p_awsprofilename \
 				ec2 create-route-table \
@@ -277,6 +283,7 @@ function awc_CleanupResources {
 		elif [ $v_resType = "routetable" ]
 		then
 			#TODO: disassociate route table
+			
 			aws --profile $p_awsprofilename \
 				ec2 delete-route-table \
 					--route-table-id $v_resId
