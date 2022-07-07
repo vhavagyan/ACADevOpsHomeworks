@@ -106,6 +106,20 @@ function awc_CreateSubnet {
 		awc_StoreResToArray $s_subnetid "subnet"
 		ret_subnetid=$s_subnetid
 	fi
+	
+	
+	aws --profile $p_awsprofilename \
+		ec2 modify-subnet-attribute \
+			--subnet-id $s_subnetid \
+			--map-public-ip-on-launch
+	#TODO: do not modify this attribute. try to attach Elastic IP to instance
+
+	errcode=$?
+	if [[ ! $errcode == 0 ]]
+	then
+		return $errcode
+	fi
+
 }
 
 
@@ -219,6 +233,61 @@ function awc_CreateAssociateRouteTable {
 }
 
 
+#function to create security group
+function awc_CreateSecurityGroup {
+	#params
+	declare p_awsprofilename=$1
+	declare p_vpcid=$2
+	declare p_resourcetags=$3
+	#return params
+	declare -n ret_secgroupid=$4
+
+	declare errcode
+	declare s_output
+	declare s_secgroupid
+
+	ret_secgroupid=""
+
+	s_output=$(aws --profile $p_awsprofilename \
+				ec2 create-security-group \
+					--group-name SSHAccess \
+					--description "Security group for SSH access" \
+					--vpc-id $p_vpcid \
+   					--tag-specification $p_resourcetags \
+					--query GroupId --output text)
+
+	errcode=$?
+	if [[ ! $errcode == 0 ]]
+	then
+		return $errcode
+	else
+		s_secgroupid=$s_output
+		awc_StoreResToArray $s_secgroupid "securitygroup"
+		ret_secgroupid=$s_secgroupid
+	fi
+
+
+	s_output=$(aws --profile $p_awsprofilename \
+				ec2 authorize-security-group-ingress \
+					--group-id $s_secgroupid \
+					--protocol tcp \
+					--port 22 \
+					--cidr 0.0.0.0/0 \
+					--query Return --output text)
+
+	errcode=$?
+	if [[ ! $errcode == 0 ]]
+	then
+		return $errcode
+	elif [ ${s_output,,} != "true" ]
+	then
+		echo "error on create security group rule"
+		return 1
+	fi
+
+}
+
+
 #==============================================================
 #===resources cleanup functions
 
@@ -238,7 +307,7 @@ function awc_CleanupResources {
 	declare s_output
 	declare v_resId
 	declare v_resType
-	declare s_vpcId
+	declare s_relatedIds
 
 	#looping array in backward order
 	indexes=( ${!awc_CreatedResourcesIDsArray[@]} )
@@ -248,47 +317,74 @@ function awc_CleanupResources {
     	v_resId=${awc_CreatedResourcesIDsArray[indexes[i]]}
         v_resType=${awc_CreatedResourcesTypesArray[indexes[i]]}
 
-		#TODO: analyze resource type and delete resource
+		#analyze resource type and delete resource
 		if [ $v_resType = "vpc" ]
 		then
+			
 			aws --profile $p_awsprofilename \
 				ec2 delete-vpc \
 					--vpc-id $v_resId
 			
 			errcode=$?
+
 		elif [ $v_resType = "subnet" ]
 		then
+			
 			aws --profile $p_awsprofilename \
 				ec2 delete-subnet \
 					--subnet-id $v_resId
 			
 			errcode=$?
+
 		elif [ $v_resType = "internetgateway" ]
 		then
-			s_vpcId=$(aws --profile $p_awsprofilename \
-						ec2 describe-internet-gateways \
-							--internet-gateway-ids $v_resId \
-							--query InternetGateways[0].Attachments[0].VpcId --output text)
+			
+			s_relatedIds=$(aws --profile $p_awsprofilename \
+							ec2 describe-internet-gateways \
+								--internet-gateway-ids $v_resId \
+								--query InternetGateways[*].Attachments[*].VpcId --output text)
 			
 			aws --profile $p_awsprofilename \
 				ec2 detach-internet-gateway \
 					--internet-gateway-id $v_resId \
-					--vpc-id $s_vpcId
+					--vpc-id $s_relatedIds
 
 			aws --profile $p_awsprofilename \
 				ec2 delete-internet-gateway \
 					--internet-gateway-id $v_resId
 			
 			errcode=$?
+
 		elif [ $v_resType = "routetable" ]
 		then
-			#TODO: disassociate route table
+			
+			s_relatedIds=$(aws --profile $p_awsprofilename \
+							ec2 describe-route-tables \
+								--route-table-ids $v_resId \
+								--query RouteTables[*].Associations[*].RouteTableAssociationId --output text)
+
+			for rtbassocid in $s_relatedIds
+			do
+				aws --profile $p_awsprofilename \
+					ec2 disassociate-route-table \
+						--association-id $rtbassocid
+			done
 			
 			aws --profile $p_awsprofilename \
 				ec2 delete-route-table \
 					--route-table-id $v_resId
 			
 			errcode=$?
+
+		elif [ $v_resType = "securitygroup" ]
+		then
+
+			aws --profile $p_awsprofilename \
+				ec2 delete-security-group \
+					--group-id $v_resId
+
+			errcode=$?
+
 		else
 			echo "Unknown resource type to delete: $v_resType"
 			return 1
