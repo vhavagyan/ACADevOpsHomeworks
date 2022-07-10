@@ -517,6 +517,15 @@ function awc_CleanupResources {
 
 			errcode=$?
 
+		elif [ $v_resType = "ec2instance" ]
+		then
+
+			s_output=$(aws --profile $p_awsprofilename \
+						ec2 terminate-instances \
+							--instance-ids $v_resId)
+
+			errcode=$?
+		
 		else
 			echo "Unknown resource type to delete: $v_resType"
 			return 1

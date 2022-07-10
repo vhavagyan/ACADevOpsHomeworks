@@ -138,8 +138,6 @@ else
     echo "$(date +'%F %T') Run EC2 instance succeeded"
 fi
 
-#TODO
-echo $var_ec2id
 
 #===
 
