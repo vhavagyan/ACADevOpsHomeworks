@@ -99,9 +99,48 @@ else
 fi
 
 
+#===creating key pair
+echo "$(date +'%F %T') Creating key pair..."
+
+s_tag=$(awc_GenerateResourceTags "key-pair" "$def_projecttag" "$def_expireinseconds")
+
+declare var_keypairname
+var_keypairname="ec2key-${def_projecttag}"
+
+awc_CreateKeyPair $def_awspn $var_keypairname $s_tag
+
+errcode=$?
+if [[ ! $errcode == 0 ]]
+then
+    echo "$(date +'%F %T') cleanup on key pair error"
+    awc_CleanupResources $def_awspn
+    exit $errcode
+else
+    echo "$(date +'%F %T') Create key pair succeeded"
+fi
+
+
+#===running ec2 instance
+echo "$(date +'%F %T') Running EC2 instance..."
+
+s_tag=$(awc_GenerateResourceTags "instance" "$def_projecttag" "$def_expireinseconds")
+
+declare var_ec2id
+awc_RunEC2Instance $def_awspn $def_ec2imageid $def_ec2instancetype $var_keypairname $var_securitygroupid $var_subnetid $s_tag "var_ec2id"
+
+errcode=$?
+if [[ ! $errcode == 0 ]]
+then
+    echo "$(date +'%F %T') cleanup on EC2 instance error"
+    awc_CleanupResources $def_awspn
+    exit $errcode
+else
+    echo "$(date +'%F %T') Run EC2 instance succeeded"
+fi
+
+#TODO
+echo $var_ec2id
+
 #===
 
 echo "$(date +'%F %T') DONE."
-
-#TODO test cleanup
-#awc_CleanupResources $def_awspn

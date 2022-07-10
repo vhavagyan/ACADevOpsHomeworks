@@ -19,4 +19,11 @@ declare -r def_vpccidr="10.10.0.0/16"
 #CIDR of new subnet for new VPC
 declare -r def_subnetcidr="10.10.10.0/24"
 
+#EC2 image id
+declare -r def_ec2imageid=ami-08d4ac5b634553e16
+
+#EC2 instance type
+declare -r def_ec2instancetype=t2.micro
+
+
 #====

@@ -60,7 +60,8 @@ function awc_CreateVPC {
 				ec2 create-vpc \
    					--cidr-block $p_vpccidr \
    					--tag-specification $p_resourcetags \
-					--query Vpc.VpcId --output text)
+					--query Vpc.VpcId \
+					--output text)
 
 	errcode=$?
 	if [[ ! $errcode == 0 ]]
@@ -95,7 +96,8 @@ function awc_CreateSubnet {
    					--cidr-block $p_subnetcidr \
 					--vpc-id $p_vpcid \
    					--tag-specification $p_resourcetags \
-					--query Subnet.SubnetId --output text)
+					--query Subnet.SubnetId \
+					--output text)
 
 	errcode=$?
 	if [[ ! $errcode == 0 ]]
@@ -141,7 +143,8 @@ function awc_CreateAttachInternetGateway {
 	s_output=$(aws --profile $p_awsprofilename \
 				ec2 create-internet-gateway \
    					--tag-specification $p_resourcetags \
-					--query InternetGateway.InternetGatewayId --output text)
+					--query InternetGateway.InternetGatewayId \
+					--output text)
 
 	errcode=$?
 	if [[ ! $errcode == 0 ]]
@@ -188,7 +191,8 @@ function awc_CreateAssociateRouteTable {
 				ec2 create-route-table \
 					--vpc-id $p_vpcid \
 					--tag-specification $p_resourcetags \
-					--query RouteTable.RouteTableId --output text)
+					--query RouteTable.RouteTableId \
+					--output text)
 
 	errcode=$?
 	if [[ ! $errcode == 0 ]]
@@ -218,7 +222,8 @@ function awc_CreateAssociateRouteTable {
 					--route-table-id $s_rtbid \
 					--gateway-id $p_igwid \
 					--destination-cidr-block 0.0.0.0/0 \
-					--query Return --output text)
+					--query Return \
+					--output text)
 	
 	errcode=$?
 	if [[ ! $errcode == 0 ]]
@@ -254,7 +259,8 @@ function awc_CreateSecurityGroup {
 					--description "Security group for SSH access" \
 					--vpc-id $p_vpcid \
    					--tag-specification $p_resourcetags \
-					--query GroupId --output text)
+					--query GroupId \
+					--output text)
 
 	errcode=$?
 	if [[ ! $errcode == 0 ]]
@@ -273,7 +279,8 @@ function awc_CreateSecurityGroup {
 					--protocol tcp \
 					--port 22 \
 					--cidr 0.0.0.0/0 \
-					--query Return --output text)
+					--query Return \
+					--output text)
 
 	errcode=$?
 	if [[ ! $errcode == 0 ]]
@@ -286,6 +293,120 @@ function awc_CreateSecurityGroup {
 	fi
 
 }
+
+
+#function to create EC2 key pair
+function awc_CreateKeyPair {
+	#params
+	declare p_awsprofilename=$1
+	declare p_keyname=$2
+	declare p_resourcetags=$3
+
+	declare errcode
+	declare s_output
+
+	declare s_keyfilefullname
+	s_keyfilefullname=~/.ssh/${p_keyname}.pem
+
+	if [ -f $s_keyfilefullname ]
+	then
+		rm -f $s_keyfilefullname
+	fi
+
+	touch $s_keyfilefullname
+
+	s_output=$(aws --profile $p_awsprofilename \
+				ec2 describe-key-pairs \
+					--filters "Name=key-name,Values=${p_keyname}" \
+					--query KeyPairs[*].KeyName \
+					--output text) 
+
+	if [[ ! -z $s_output ]]
+	then
+		aws --profile $p_awsprofilename \
+			ec2 delete-key-pair \
+				--key-name "${p_keyname}"
+
+		errcode=$?
+	fi
+	
+	errcode=$?
+	if [[ ! $errcode == 0 ]]
+	then
+		return $errcode
+	fi
+
+	aws --profile $p_awsprofilename \
+		ec2 create-key-pair \
+            --key-name "${p_keyname}" \
+			--key-type rsa \
+			--key-format pem \
+   			--tag-specification $p_resourcetags \
+            --query "KeyMaterial" \
+			--output text > $s_keyfilefullname 
+
+	errcode=$?
+	if [[ ! $errcode == 0 ]]
+	then
+		return $errcode
+	else
+		awc_StoreResToArray "${p_keyname}" "keypair"
+	fi
+	
+	
+	chmod 400 $s_keyfilefullname
+
+	errcode=$?
+	if [[ ! $errcode == 0 ]]
+	then
+		return $errcode
+	fi
+}
+
+
+#function to run EC2 instance
+function awc_RunEC2Instance {
+	#params
+	declare p_awsprofilename=$1
+	declare p_imageid=$2
+	declare p_instancetype=$3
+	declare p_keypairname=$4
+	declare p_secgroupid=$5
+	declare p_subnetid=$6
+	declare p_resourcetags=$7
+	#return params
+	declare -n ret_ec2id=$8
+
+	declare errcode
+	declare s_output
+	declare s_ec2id
+
+	ret_ec2id=""
+
+	s_output=$(aws --profile $p_awsprofilename \
+				ec2 run-instances \
+					--image-id  $p_imageid \
+					--count 1 \
+					--instance-type $p_instancetype \
+					--key-name $p_keypairname \
+					--security-group-ids $p_secgroupid \
+					--subnet-id $p_subnetid \
+   					--tag-specification $p_resourcetags \
+					--query Instances[0].InstanceId \
+					--output text)
+
+	errcode=$?
+	if [[ ! $errcode == 0 ]]
+	then
+		return $errcode
+	else
+		s_ec2id=$s_output
+		awc_StoreResToArray $s_ec2id "ec2instance"
+		ret_ec2id=$s_ec2id
+	fi
+
+}
+
 
 
 #==============================================================
@@ -342,7 +463,8 @@ function awc_CleanupResources {
 			s_relatedIds=$(aws --profile $p_awsprofilename \
 							ec2 describe-internet-gateways \
 								--internet-gateway-ids $v_resId \
-								--query InternetGateways[*].Attachments[*].VpcId --output text)
+								--query InternetGateways[*].Attachments[*].VpcId \
+								--output text)
 			
 			aws --profile $p_awsprofilename \
 				ec2 detach-internet-gateway \
@@ -361,7 +483,8 @@ function awc_CleanupResources {
 			s_relatedIds=$(aws --profile $p_awsprofilename \
 							ec2 describe-route-tables \
 								--route-table-ids $v_resId \
-								--query RouteTables[*].Associations[*].RouteTableAssociationId --output text)
+								--query RouteTables[*].Associations[*].RouteTableAssociationId \
+								--output text)
 
 			for rtbassocid in $s_relatedIds
 			do
@@ -382,6 +505,15 @@ function awc_CleanupResources {
 			aws --profile $p_awsprofilename \
 				ec2 delete-security-group \
 					--group-id $v_resId
+
+			errcode=$?
+
+		elif [ $v_resType = "keypair" ]
+		then
+
+			aws --profile $p_awsprofilename \
+				ec2 delete-key-pair \
+					--key-name "${v_resId}"
 
 			errcode=$?
 
