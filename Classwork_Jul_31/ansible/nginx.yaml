@@ -1,0 +1,53 @@
+---
+- hosts: nginx_server
+  become: true
+  tasks:
+  - name: "install nginx"
+    apt:
+      name: ['nginx']
+      state: latest
+
+  - name: "create www directory"
+    file:
+      path: /var/www/jun15site
+      state: directory
+      mode: '0775'
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+
+  - name: delete default nginx site
+    file:
+      path: /etc/nginx/sites-enabled/default
+      state: absent
+    notify: restart nginx
+ 
+  - name: copy html files
+    copy:
+      src: index.html
+      dest: /var/www/jun15site/index.html
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: '0644'
+ 
+  - name: copy html files
+    copy:
+      src: 404.html
+      dest: /var/www/jun15site/404.html
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: '0644'
+ 
+  - name: copy nginx site.conf
+    template:
+      src: jun15site.conf
+      dest: /etc/nginx/sites-enabled/jun15site.conf
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: '0644'
+    notify: restart nginx
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
