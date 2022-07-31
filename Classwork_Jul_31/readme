@@ -1,0 +1,10 @@
+Classwork:
+1. Create bucket for terrafofm remote backend
+2. Configure terraform to use remote backend
+3. Create infrastructure with ec2 instance and s3 bucket
+4. Install nginx and copy website  files from june15 homework to ec2 instance with ansible
+5. On ec2  enable connection via aws console session manager, do it with ansible
+6. Also copy nginx config file to ec2 instance with ansible
+7. Write bash script to perform this all, and return URL with working website
+8. *** Use AWS cloudfront and S3 bucket for the same website june15(use also your dns record and https with redirection if available ), handle 404 errors and redirect them to homepage
+9. *** Complete  point 8 using terraform
