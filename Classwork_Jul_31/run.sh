@@ -44,6 +44,5 @@ then
 fi
 
 
-
 echo "=================================================="
 echo "Website is ready http://$nginx_server_ip/"

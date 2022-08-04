@@ -1,5 +1,5 @@
 [nginx_server]
-52.87.198.179
+54.235.236.190
 
 [nginx_server:vars]
 ansible_ssh_user=ubuntu 

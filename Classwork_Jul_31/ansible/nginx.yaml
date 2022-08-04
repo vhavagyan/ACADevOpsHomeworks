@@ -23,7 +23,7 @@
  
   - name: copy html files
     copy:
-      src: index.html
+      src: ../external/index.html
       dest: /var/www/jun15site/index.html
       owner: "{{ ansible_user }}"
       group: "{{ ansible_user }}"
@@ -31,7 +31,7 @@
  
   - name: copy html files
     copy:
-      src: 404.html
+      src: ../external/404.html
       dest: /var/www/jun15site/404.html
       owner: "{{ ansible_user }}"
       group: "{{ ansible_user }}"
