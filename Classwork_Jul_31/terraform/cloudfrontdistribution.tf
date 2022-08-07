@@ -8,6 +8,8 @@ resource "aws_cloudfront_distribution" "cloudfront_s3_distribution" {
     }
   }
 
+  aliases = ["${var.route53HostedZoneDN}"]
+
   enabled             = true
   is_ipv6_enabled     = false
   comment             = ""
@@ -33,7 +35,8 @@ resource "aws_cloudfront_distribution" "cloudfront_s3_distribution" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn = aws_acm_certificate.cert_for_cloudfront.arn
+    ssl_support_method = "sni-only"
   }
 
   custom_error_response {
@@ -42,6 +45,12 @@ resource "aws_cloudfront_distribution" "cloudfront_s3_distribution" {
     response_page_path = "/index.html"
   }
   
+  custom_error_response {
+    error_code = 403
+    response_code = 200
+    response_page_path = "/index.html"
+  }
+
   restrictions {
     geo_restriction {
       restriction_type = "none"

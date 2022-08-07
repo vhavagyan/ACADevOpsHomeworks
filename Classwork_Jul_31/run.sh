@@ -20,6 +20,8 @@ fi
 # get EC2 IP
 nginx_server_ip=$(terraform -chdir=terraform output -raw ec2_public_ip)
 
+#get site DNS on cloudfront
+cloudfront_dist_dn=$(terraform -chdir=terraform output -json cloudfront_dist_aliases)
 
 # creating ansible cofig files
 cat << EndOfMessage > ./ansible/hosts
@@ -46,3 +48,5 @@ fi
 
 echo "=================================================="
 echo "Website is ready http://$nginx_server_ip/"
+
+echo "Try also https://$cloudfront_dist_dn/"

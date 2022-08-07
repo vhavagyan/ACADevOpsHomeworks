@@ -14,6 +14,13 @@ resource "aws_s3_object" "s3_object_indexhtml" {
   content_type = "text/html"
 }
 
+resource "aws_s3_object" "s3_object_404html" {
+  bucket = aws_s3_bucket.srv_nginx_s3bucket.id
+  key    = "404.html"
+  source = "../external/404.html"
+  content_type = "text/html"
+}
+
 resource "aws_s3_bucket_acl" "srv_nginx_s3bucket_acl" {
   bucket = aws_s3_bucket.srv_nginx_s3bucket.id
   acl    = "private"
