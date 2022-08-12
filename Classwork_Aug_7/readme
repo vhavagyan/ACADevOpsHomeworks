@@ -1,0 +1,6 @@
+Note: AWS Resources are deployed with terraform
+1. Create EKS cluster
+2. Create LoadBalancer
+3. Attach EKS to LoadBalancer
+4. Create Deployment with 2 Replicas of pod which uses “Battle City” image (Find image in dockerhub)
+5. *** Create CloudFront and attach to LoadBalancer (With domain and certificate)
