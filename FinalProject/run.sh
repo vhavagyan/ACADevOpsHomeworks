@@ -36,12 +36,22 @@ EndOfMessage
 
 # running ansible
 
-ansible-playbook --ssh-extra-args "-o StrictHostKeyChecking=no" -i ansible/hosts ansible/nginx.yaml
+ansible-playbook --ssh-extra-args "-o StrictHostKeyChecking=no" -i ansible/hosts ansible/java.yaml
 
 errcode=$?
 if [[ $errcode != 0 ]]
 then
-	echo "error on installing nginx"
+	echo "error on installing Java JRE"
+	exit $errcode
+fi
+
+
+ansible-playbook --ssh-extra-args "-o StrictHostKeyChecking=no" -i ansible/hosts ansible/jenkins.yaml
+
+errcode=$?
+if [[ $errcode != 0 ]]
+then
+	echo "error on installing Jenkins"
 	exit $errcode
 fi
 

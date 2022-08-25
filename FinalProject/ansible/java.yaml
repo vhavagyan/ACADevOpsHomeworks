@@ -1,0 +1,9 @@
+---
+- hosts: ops_server
+  become: true
+  tasks:
+  
+  - name: "install java"
+    apt:
+      name: openjdk-11-jre
+      update_cache: yes
