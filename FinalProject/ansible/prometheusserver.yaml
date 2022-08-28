@@ -1,0 +1,38 @@
+---
+- hosts: ops_server
+  become: true
+  tasks:
+  
+  - name: "add usergroup"
+    group:
+      name: prometheus
+      system: yes
+      state: present
+
+  - name: "add user"
+    user:
+      name: prometheus
+      group: prometheus
+      shell: /sbin/nologin
+      system: yes
+      state: present
+
+  - name: "make db directory"
+    file:
+      path: /var/lib/prometheus
+      state: directory
+      group: prometheus
+      owner: prometheus
+      mode: 0755
+
+  - name: "make config directory"
+    file:
+      path: "{{ item }}"
+      state: directory
+      group: prometheus
+      owner: root
+      mode: 0770
+    with_items:
+      - "/etc/prometheus"
+      - "/etc/prometheus/rules"
+      - "/etc/prometheus/file_sd"

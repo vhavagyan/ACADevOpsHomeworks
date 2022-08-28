@@ -1,0 +1,24 @@
+---
+- hosts: ops_server
+  become: true
+  tasks:
+  
+  - name: "jenkins apt repository key"
+    apt_key:
+      url: "https://pkg.jenkins.io/debian-stable/jenkins.io.key"
+      state: present
+
+  - name: "configure repository"
+    apt_repository:
+      repo: deb https://pkg.jenkins.io/debian-stable binary/
+      state: present
+
+  - name: "install jenkins"
+    apt:
+      name: jenkins
+      update_cache: yes
+
+  - name: "run jenkins"
+    service:
+      name: jenkins
+      state: started
