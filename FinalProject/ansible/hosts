@@ -1,5 +1,5 @@
 [ops_server]
-18.235.249.123
+18.206.150.96
 
 [ops_server:vars]
 ansible_ssh_user=ubuntu 

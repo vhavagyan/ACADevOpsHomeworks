@@ -112,7 +112,7 @@
         owner: prometheus
         group: prometheus
       notify:
-        - reload prometheus
+        - restart prometheus
 
     - name: "run prometheus"
       service:
@@ -128,9 +128,3 @@
         daemon_reload: true
         name: prometheus
         state: restarted
-
-    - name: reload prometheus
-      become: true
-      systemd:
-        name: prometheus
-        state: reloaded
