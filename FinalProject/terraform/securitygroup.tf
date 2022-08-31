@@ -28,6 +28,14 @@ resource "aws_security_group" "srv_ops_sec_group" {
   }
 
   ingress {
+    description      = "Prometheus server, All IPs"
+    from_port        = 9090
+    to_port          = 9090
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  ingress {
     description      = "Grafana, All IPs"
     from_port        = 3000
     to_port          = 3000

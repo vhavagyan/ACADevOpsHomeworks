@@ -68,6 +68,17 @@ then
 fi
 
 
+# installing grafana server
+ansible-playbook --ssh-extra-args "-o StrictHostKeyChecking=no" -i ansible/hosts ansible/grafana.yaml
+
+errcode=$?
+if [[ $errcode != 0 ]]
+then
+	echo "error on installing Grafana server"
+	exit $errcode
+fi
+
+
 echo "=================================================="
 echo "OPS server is ready $ops_server_ip"
 

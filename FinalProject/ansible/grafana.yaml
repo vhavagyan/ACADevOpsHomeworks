@@ -3,22 +3,23 @@
   become: true
   tasks:
   
-  - name: "jenkins apt repository key"
+  - name: "grafana apt repository key"
     apt_key:
-      url: "https://pkg.jenkins.io/debian-stable/jenkins.io.key"
+      url: "https://packages.grafana.com/gpg.key"
       state: present
 
   - name: "configure repository"
     apt_repository:
-      repo: deb https://pkg.jenkins.io/debian-stable binary/
+      repo: deb https://packages.grafana.com/oss/deb stable main
       state: present
 
-  - name: "install jenkins"
+  - name: "install grafana"
     apt:
-      name: jenkins
+      name: grafana
       update_cache: yes
 
-  - name: "run jenkins"
+  - name: "run grafana server"
     service:
-      name: jenkins
+      name: grafana-server
       state: started
+      enabled: yes

@@ -22,3 +22,4 @@
     service:
       name: jenkins
       state: started
+      enabled: yes

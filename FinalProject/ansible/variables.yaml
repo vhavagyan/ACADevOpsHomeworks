@@ -1,0 +1,10 @@
+---
+os_arch: linux-amd64
+
+# from https://prometheus.io/download/
+prometheus_version: 2.37.0
+prometheus_checksum: "ca70f5a261fd545da0b9893c42a73547a94ebd5111ef2b6b9f8742c5dbb73522"
+
+prometheus_config_dir: /etc/prometheus
+prometheus_db_dir: /var/lib/prometheus
+prometheus_binary_install_dir: /usr/local/bin
